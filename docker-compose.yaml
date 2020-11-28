@@ -1,0 +1,50 @@
+services:
+
+  base:
+    image: ubuntu:18.04
+    command: >
+      bash -c "
+        echo 'Starting ...';
+        sleep 3;
+        echo 'Touching /tmp/ready ...';
+        touch /tmp/ready;
+        echo 'Running (actually sleeping) ...';
+        sleep 30;
+        echo 'Done here.';
+      "
+    healthcheck:
+      test: "[ -f /tmp/ready ]"
+      interval: 1s
+      timeout: 1s
+      start_period: 1s
+      retries: 100
+
+  intermediate:
+    image: ubuntu:18.04
+    network_mode: service:base
+    depends_on:
+      base:
+        condition: service_healthy
+    command: >  # Sleep 1 before exiting with failure
+      bash -c "
+        echo 'Will exit after 1 sec';
+        sleep 1;
+        echo 'Will exit now';
+        exit 1
+      "
+    healthcheck:
+      test: exit 1
+      interval: 1s
+      timeout: 1s
+      start_period: 1s
+      retries: 100
+
+  top:
+    image: ubuntu:18.04
+    # network_mode: service:base
+    depends_on:
+      intermediate:
+        condition: service_healthy
+    command:
+      - echo
+      - "\nATTENTION: Running top service but should NEVER have started.\n"
